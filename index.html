@@ -7,10 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans:wght@400;700&display=swap');
+        /* Changed font to Noto Sans as requested */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700;900&display=swap');
 
         body {
-            font-family: 'Fredoka', 'Noto Sans', sans-serif;
+            font-family: 'Noto Sans', sans-serif;
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
@@ -45,16 +46,26 @@
             aspect-ratio: 1;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.1);
             z-index: 1;
+
+            /* 🔥 FIX: Ensure borders don't expand the tile size */
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .tile:active { transform: scale(0.92); }
 
-        /* Selected State */
+        /* Selected State - Modified */
         .tile.selected {
             background-color: #fef08a;
-            transform: scale(1.1);
+            
+            /* 🔥 FIX: Borders inside */
+            box-sizing: border-box; 
+            
+            /* 🔥 FIX: Force lock scale to 1 so it doesn't overflow */
+            transform: scale(1) !important; 
+            
             z-index: 10;
-            box-shadow: 0 0 20px #fde047;
+            box-shadow: 0 0 15px #fde047;
             border: 3px solid #eab308;
         }
 
@@ -64,11 +75,13 @@
             box-shadow: 0 0 15px #3b82f6, inset 0 -4px 0 rgba(0,0,0,0.2);
             animation: pulse 1.5s infinite;
             border: 2px solid white;
+            box-sizing: border-box; /* Fix for super items too */
         }
 
+        /* 🔥 FIX: Animation now only glows, does NOT scale up */
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 10px #3b82f6; }
-            50% { transform: scale(1.05); box-shadow: 0 0 25px #60a5fa; }
+            50% { transform: scale(1); box-shadow: 0 0 25px #60a5fa; }
             100% { transform: scale(1); box-shadow: 0 0 10px #3b82f6; }
         }
 
@@ -135,67 +148,76 @@
         .quiz-option:active {
             transform: scale(0.96);
         }
+
+        /* Footer Styles - Consistent with Fixed Version */
+        .credits {
+            margin-top: auto;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            z-index: 10;
+            position: relative;
+            padding-bottom: 1rem;
+            width: 100%;
+        }
+        .credits a {
+            color: white;
+            transition: transform 0.2s, opacity 0.2s;
+            display: inline-block;
+        }
+        .credits a:hover {
+            transform: translateY(-2px);
+            opacity: 1;
+        }
     </style>
 </head>
-<body id="game-body" class="min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden text-gray-800">
+<body id="game-body" class="min-h-screen flex flex-col items-center p-4 pb-24 overflow-hidden text-gray-800 relative">
 
-    <!-- Header -->
-    <div class="w-full max-w-[500px] mb-4 px-2 relative">
-        <div class="flex justify-between items-center mb-3">
-            <div>
-                <h1 class="text-4xl font-black text-white drop-shadow-lg tracking-wider">World Travel</h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <p class="text-white/90 text-base font-bold">Level <span id="level-display" class="text-yellow-300 text-xl">1</span></p>
-                    <button onclick="showInstructions()" class="bg-white/20 hover:bg-white/30 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold border border-white/40 transition text-sm" aria-label="Instructions">
-                        ?
-                    </button>
+    <div class="flex-1 flex flex-col items-center justify-center w-full max-w-[500px] mb-4">
+        <div class="w-full mb-4 px-2 relative">
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                    <h1 class="text-4xl font-black text-white drop-shadow-lg tracking-wider">World Travel</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <p class="text-white/90 text-base font-bold">Level <span id="level-display" class="text-yellow-300 text-xl">1</span></p>
+                        <button onclick="showInstructions()" class="bg-white/20 hover:bg-white/30 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold border border-white/40 transition text-sm" aria-label="Instructions">
+                            ?
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-2">
+                     <div class="bg-white/90 rounded-2xl px-3 py-2 shadow-lg text-center min-w-[70px] border-b-4 border-blue-200">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Target</p>
+                        <p id="target-display" class="text-xl font-black text-blue-600 leading-tight">600</p>
+                    </div>
+                    <div class="bg-white/90 rounded-2xl px-3 py-2 shadow-lg text-center min-w-[70px] border-b-4 border-red-200">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Moves</p>
+                        <p id="moves-display" class="text-xl font-black text-red-500 leading-tight">20</p>
+                    </div>
                 </div>
             </div>
-
-            <div class="flex gap-3 mt-2">
-                 <div class="bg-white/90 rounded-2xl px-3 py-2 shadow-lg text-center min-w-[70px] border-b-4 border-blue-200">
-                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Target</p>
-                    <p id="target-display" class="text-xl font-black text-blue-600 leading-tight">600</p>
-                </div>
-                <div class="bg-white/90 rounded-2xl px-3 py-2 shadow-lg text-center min-w-[70px] border-b-4 border-red-200">
-                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Moves</p>
-                    <p id="moves-display" class="text-xl font-black text-red-500 leading-tight">20</p>
-                </div>
+            
+            <div class="w-full bg-black/20 h-3 rounded-full overflow-hidden backdrop-blur-sm border border-white/20 shadow-inner">
+                <div id="progress-bar" class="h-full bg-gradient-to-r from-yellow-300 to-orange-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(253,224,71,0.6)]" style="width: 0%"></div>
             </div>
         </div>
+
+        <div class="grid-container relative" id="grid">
+            </div>
         
-        <!-- Progress Bar -->
-        <div class="w-full bg-black/20 h-3 rounded-full overflow-hidden backdrop-blur-sm border border-white/20 shadow-inner">
-            <div id="progress-bar" class="h-full bg-gradient-to-r from-yellow-300 to-orange-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(253,224,71,0.6)]" style="width: 0%"></div>
+        <div class="mt-6 bg-white/10 backdrop-blur-md rounded-full px-6 py-2 border border-white/20">
+            <span class="text-white font-bold text-xl drop-shadow-md">Score: <span id="score-display" class="font-mono text-2xl text-yellow-300">0</span></span>
         </div>
     </div>
 
-    <!-- Game Board -->
-    <div class="grid-container relative" id="grid">
-        <!-- Grid items generated by JS -->
-    </div>
-    
-    <!-- Floating Score -->
-    <div class="mt-6 bg-white/10 backdrop-blur-md rounded-full px-6 py-2 border border-white/20">
-        <span class="text-white font-bold text-xl drop-shadow-md">Score: <span id="score-display" class="font-mono text-2xl text-yellow-300">0</span></span>
-    </div>
-
-    <!-- Footer -->
-    <footer class="credits mt-8 text-center text-white/80 text-sm pb-4 w-full max-w-[500px]">
+    <footer class="credits">
         <div class="flex justify-center items-center gap-4 mb-4">
-            <a href="mailto:mamahowma@gmail.com" aria-label="Email mamahowma" class="hover:text-white transition-colors">
-                <i class="fa-solid fa-envelope fa-xl fa-fw" aria-hidden="true"></i>
-            </a>
-            <a href="https://www.facebook.com/mamahowma" target="_blank" rel="noopener noreferrer" aria-label="mamahowma Facebook Page" class="hover:text-white transition-colors">
-                <i class="fa-brands fa-facebook fa-xl fa-fw" aria-hidden="true"></i>
-            </a>
-            <a href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer" aria-label="Support mamahowma" class="hover:text-white transition-colors">
-                <i class="fa-solid fa-mug-hot fa-xl fa-fw" aria-hidden="true"></i>
-            </a>
+   
         </div>
 
-        <div class="support-cta mb-4">
-            <a href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer" class="support-btn inline-block bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-full border border-white/40 transition backdrop-blur-sm shadow-lg">
+        <div class="mb-4">
+            <a href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer" class="inline-block bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-full border border-white/40 transition backdrop-blur-sm shadow-lg text-sm decoration-none">
                 Like this free game? ☕ Buy me a coffee
             </a>
         </div>
@@ -203,7 +225,6 @@
         <p class="text-xs opacity-70">© 2025 Christina Yu. All rights reserved.</p>
     </footer>
 
-    <!-- Level Complete / Game Over Modal -->
     <div id="game-modal" class="modal">
         <div class="bg-white rounded-[2rem] p-8 text-center max-w-sm w-full shadow-2xl transform transition-all scale-100 border-4 border-white/50">
             <h2 id="modal-title" class="text-3xl font-black mb-3 text-blue-600">Level Complete!</h2>
@@ -214,7 +235,6 @@
         </div>
     </div>
 
-    <!-- Quiz Modal -->
     <div id="quiz-modal" class="modal">
         <div class="bg-white rounded-[2rem] p-6 w-full max-w-md mx-4 shadow-2xl border-4 border-yellow-400 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
@@ -228,8 +248,7 @@
             </div>
             
             <div id="quiz-options" class="grid grid-cols-1 gap-3 mb-4">
-                <!-- Options will be injected here -->
-            </div>
+                </div>
             
             <div id="quiz-feedback" class="min-h-[3rem] text-center mb-2"></div>
             
@@ -239,7 +258,6 @@
         </div>
     </div>
 
-    <!-- Instructions Modal -->
     <div id="instructions-modal" class="modal">
         <div class="bg-white rounded-[2rem] p-6 max-w-sm w-full mx-4 shadow-2xl border-4 border-blue-300">
             <div class="text-center mb-4">
@@ -300,7 +318,7 @@
         let width = 5; // Default start width (5x5)
         const squares = [];
         
-        // Filtered Landmark Emojis Pool (Strictly Recognizable)
+        // Filtered Landmark Emojis Pool
         const allLandmarkTypes = [
             '🗼', // Tokyo Tower / Eiffel Tower
             '🗻', // Fuji
@@ -346,7 +364,7 @@
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 60 Geo Questions (Translated and Adapted)
+        // 60 Geo Questions (English)
         const allGeoQuestions = [
             { q: "Where is the Eiffel Tower located?", options: ["Paris", "London", "New York", "Tokyo"], correct: 0 },
             { q: "Mount Fuji is the highest peak in which country?", options: ["Korea", "China", "Japan", "Vietnam"], correct: 2 },
@@ -496,7 +514,7 @@
 
             // Update Background
             const bgClass = levelBackgrounds[(level - 1) % levelBackgrounds.length];
-            gameBody.className = `min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden text-gray-800 ${bgClass}`;
+            gameBody.className = `min-h-screen flex flex-col items-center p-4 pb-24 overflow-hidden text-gray-800 relative ${bgClass}`;
 
             // Level Progression
             const numTypes = Math.min(4 + Math.floor((level - 1) / 2), allLandmarkTypes.length);
@@ -534,9 +552,9 @@
                 
                 // Optimized Tile Size for Mobile
                 if (width === 5) {
-                    square.style.fontSize = 'clamp(32px, 12vw, 56px)';
+                    square.style.fontSize = 'clamp(22px, 10vw, 46px)'; 
                 } else {
-                    square.style.fontSize = 'clamp(24px, 8vw, 42px)';
+                    square.style.fontSize = 'clamp(18px, 7vw, 36px)';
                 }
 
                 let randomType;
@@ -719,13 +737,14 @@
                 btnElement.classList.remove('bg-blue-50', 'hover:bg-blue-100', 'text-blue-800', 'border-blue-200');
                 btnElement.classList.add('bg-red-500', 'text-white', 'border-red-600', 'shadow-md');
                 
+                // 🔥 COMPACT QUIZ FEEDBACK (FIXED)
                 quizFeedbackEl.innerHTML = `
-                    <div class="mb-3">
-                        <span class='font-black text-xl text-red-600 block'>Wrong! ${SCORE_QUIZ_WRONG} Score, -3 Moves!</span>
+                    <div class="mb-2">
+                        <span class='font-black text-base text-red-600 block'>Wrong! ${SCORE_QUIZ_WRONG} Score, -3 Moves!</span>
                     </div>
-                    <div class="p-4 bg-green-50 border-4 border-green-400 rounded-2xl shadow-lg animate-[pulse_1s_infinite]">
-                        <p class="text-xs font-black text-gray-500 uppercase mb-1 tracking-widest">Correct Answer</p>
-                        <p class="text-3xl font-black text-green-600 drop-shadow-sm">${correctText}</p>
+                    <div class="p-2 bg-green-50 border-2 border-green-400 rounded-xl shadow-md animate-[pulse_1s_infinite]">
+                        <p class="text-[12px] font-black text-gray-500 uppercase mb-0 tracking-widest">Correct Answer</p>
+                        <p class="text-lg font-black text-green-600 drop-shadow-sm leading-tight">${correctText}</p>
                     </div>
                 `;
             }

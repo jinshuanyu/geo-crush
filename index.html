@@ -7,12 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* 1. Changed Font to Poppins (Modern & Clean) */
+        /* 1. Font: Poppins for English text */
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
 
         body {
-            /* Use Poppins for text, and Emoji fonts for icons */
-            font-family: 'Poppins', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+            /* Interface text uses Poppins */
+            font-family: 'Poppins', sans-serif;
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
@@ -28,7 +28,7 @@
             aspect-ratio: 1 / 1;
             background-color: rgba(255, 255, 255, 0.25);
             border-radius: 12px;
-            padding: 5px;
+            padding: 4px; /* Minimal padding */
             backdrop-filter: blur(8px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.15);
             border: 1px solid rgba(255,255,255,0.4);
@@ -47,9 +47,12 @@
             aspect-ratio: 1;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1), inset 0 -2px 0 rgba(0,0,0,0.1);
             z-index: 1;
-            
-            /* Emoji Font Priority for Tiles */
-            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+
+            /* 🔥 Nuclear Fix for Windows Color Emojis */
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Android Emoji", sans-serif;
+            font-weight: 400 !important; /* Force normal weight to prevent B/W fallback */
+            font-style: normal;
+            font-variant-emoji: emoji;
 
             box-sizing: border-box;
             overflow: hidden;
@@ -182,7 +185,7 @@
             font-weight: normal; 
             text-decoration: none;
             transition: all 0.3s ease;
-            font-size: 0.85rem; /* Slightly smaller for better fit */
+            font-size: 0.85rem; 
         }
         .support-btn:hover {
             background: rgba(255, 255, 255, 0.35);
@@ -190,7 +193,7 @@
         }
     </style>
 </head>
-<body id="game-body" class="min-h-screen flex flex-col items-center p-2 pb-24 overflow-hidden text-gray-800 relative">
+<body id="game-body" class="min-h-screen flex flex-col items-center p-1 pb-24 overflow-hidden text-gray-800 relative">
 
     <div class="flex-1 flex flex-col items-center justify-center w-full max-w-[500px] mb-4">
         <div class="w-full mb-4 px-2 relative">
@@ -347,19 +350,19 @@
         let width = 5; // Default start width (5x5)
         const squares = [];
         
-        // Filtered Landmark Emojis Pool
+        // 🔥 Nuclear Fix: Added \uFE0F to all emojis to force color rendering
         const allLandmarkTypes = [
-            '🗼', // Tokyo Tower / Eiffel Tower
-            '🗻', // Fuji
-            '🗿', // Moai
-            '🗽', // Liberty
-            '🕌', // Taj Mahal
-            '🏯', // Japanese Castle
-            '🏰', // European Castle
-            '🌉', // Golden Gate
-            '🏛️', // Parthenon
-            '🏜️', // Pyramids
-            '⛩️', // Torii Gate
+            '🗼\uFE0F', // Tokyo Tower
+            '🗻\uFE0F', // Fuji
+            '🗿\uFE0F', // Moai
+            '🗽\uFE0F', // Liberty
+            '🕌\uFE0F', // Taj Mahal
+            '🏯\uFE0F', // Japanese Castle
+            '🏰\uFE0F', // European Castle
+            '🌉\uFE0F', // Golden Gate
+            '🏛️\uFE0F', // Parthenon
+            '🏜️\uFE0F', // Pyramids
+            '⛩️\uFE0F', // Torii Gate
         ];
         
         let currentLevelTypes = []; 
@@ -543,7 +546,7 @@
 
             // Update Background
             const bgClass = levelBackgrounds[(level - 1) % levelBackgrounds.length];
-            gameBody.className = `min-h-screen flex flex-col items-center p-2 pb-24 overflow-hidden text-gray-800 relative ${bgClass}`;
+            gameBody.className = `min-h-screen flex flex-col items-center p-1 pb-24 overflow-hidden text-gray-800 relative ${bgClass}`;
 
             // Level Progression
             const numTypes = Math.min(4 + Math.floor((level - 1) / 2), allLandmarkTypes.length);
@@ -579,11 +582,11 @@
                 square.setAttribute('id', i);
                 square.classList.add('tile');
                 
-                // Optimized Tile Size for Mobile
+                // 🔥 Font Size Optimized for new larger tiles
                 if (width === 5) {
-                    square.style.fontSize = 'clamp(32px, 12vw, 56px)'; 
+                    square.style.fontSize = 'clamp(32px, 13vw, 60px)'; 
                 } else {
-                    square.style.fontSize = 'clamp(24px, 9vw, 45px)'; 
+                    square.style.fontSize = 'clamp(24px, 9.5vw, 48px)'; 
                 }
 
                 let randomType;
@@ -740,8 +743,7 @@
             
             optionsWithIndices.forEach((optObj) => {
                 const btn = document.createElement('button');
-                // 3. Changed text-lg to text-base for option buttons
-                btn.className = "quiz-option w-full bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold py-3 px-4 rounded-xl border-2 border-blue-200 shadow-sm text-base";
+                btn.className = "quiz-option w-full bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold py-3 px-4 rounded-xl border-2 border-blue-200 shadow-sm text-base"; // text-base instead of text-lg for compact fit
                 btn.innerText = optObj.text;
                 // Check against original index
                 btn.onclick = () => handleQuizAnswer(optObj.originalIndex === qData.correct, btn, correctText);

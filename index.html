@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>World Travel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Fredoka', 'Noto Sans', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background 1s ease;
+        }
+
+        /* The Game Grid */
+        .grid-container {
+            display: grid;
+            gap: 4px;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            background-color: rgba(255, 255, 255, 0.25);
+            border-radius: 16px;
+            padding: 10px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.4);
+            transition: all 0.3s ease;
+        }
+
+        .tile {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.85);
+            transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+            aspect-ratio: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .tile:active { transform: scale(0.92); }
+
+        /* Selected State */
+        .tile.selected {
+            background-color: #fef08a;
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 0 20px #fde047;
+            border: 3px solid #eab308;
+        }
+
+        /* Super Landmark (Bomb) */
+        .tile.super-item {
+            background: radial-gradient(circle at 30% 30%, #4ade80, #3b82f6);
+            box-shadow: 0 0 15px #3b82f6, inset 0 -4px 0 rgba(0,0,0,0.2);
+            animation: pulse 1.5s infinite;
+            border: 2px solid white;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 10px #3b82f6; }
+            50% { transform: scale(1.05); box-shadow: 0 0 25px #60a5fa; }
+            100% { transform: scale(1); box-shadow: 0 0 10px #3b82f6; }
+        }
+
+        /* Match Animation */
+        .tile.matched {
+            animation: popOut 0.3s ease-out forwards;
+        }
+
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Floating Score Text */
+        .floating-text {
+            position: absolute;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 28px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 50;
+            white-space: nowrap;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+        }
+
+        /* Shake Animation */
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Modal Overlay */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal.active { display: flex; }
+        
+        .quiz-option {
+            transition: all 0.2s;
+        }
+        .quiz-option:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body id="game-body" class="min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden text-gray-800">
+
+    <!-- Header -->
+    <div class="w-full max-w-[500px] mb-4 px-2 relative">
+        <div class="flex justify-between items-center mb-3">
+            <div>
+                <h1 class="text-4xl font-black text-white drop-shadow-lg tracking-wider">World Travel</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <p class="text-white/90 text-base font-bold">Level <span id="level-display" class="text-yellow-300 text-xl">1</span></p>
+                    <button onclick="showInstructions()" class="bg-white/20 hover:bg-white/30 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold border border-white/40 transition text-sm" aria-label="Instructions">
+                        ?
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-2">
+                 <div class="bg-white/90 rounded-2xl px-3 py-2 shadow-lg text-center min-w-[70px] border-b-4 border-blue-200">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Target</p>
+                    <p id="target-display" class="text-xl font-black text-blue-600 leading-tight">600</p>
+                </div>
+                <div class="bg-white/90 rounded-2xl px-3 py-2 shadow-lg text-center min-w-[70px] border-b-4 border-red-200">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wide">Moves</p>
+                    <p id="moves-display" class="text-xl font-black text-red-500 leading-tight">20</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="w-full bg-black/20 h-3 rounded-full overflow-hidden backdrop-blur-sm border border-white/20 shadow-inner">
+            <div id="progress-bar" class="h-full bg-gradient-to-r from-yellow-300 to-orange-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(253,224,71,0.6)]" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Game Board -->
+    <div class="grid-container relative" id="grid">
+        <!-- Grid items generated by JS -->
+    </div>
+    
+    <!-- Floating Score -->
+    <div class="mt-6 bg-white/10 backdrop-blur-md rounded-full px-6 py-2 border border-white/20">
+        <span class="text-white font-bold text-xl drop-shadow-md">Score: <span id="score-display" class="font-mono text-2xl text-yellow-300">0</span></span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="credits mt-8 text-center text-white/80 text-sm pb-4 w-full max-w-[500px]">
+        <div class="flex justify-center items-center gap-4 mb-4">
+            <a href="mailto:mamahowma@gmail.com" aria-label="Email mamahowma" class="hover:text-white transition-colors">
+                <i class="fa-solid fa-envelope fa-xl fa-fw" aria-hidden="true"></i>
+            </a>
+            <a href="https://www.facebook.com/mamahowma" target="_blank" rel="noopener noreferrer" aria-label="mamahowma Facebook Page" class="hover:text-white transition-colors">
+                <i class="fa-brands fa-facebook fa-xl fa-fw" aria-hidden="true"></i>
+            </a>
+            <a href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer" aria-label="Support mamahowma" class="hover:text-white transition-colors">
+                <i class="fa-solid fa-mug-hot fa-xl fa-fw" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="support-cta mb-4">
+            <a href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer" class="support-btn inline-block bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-full border border-white/40 transition backdrop-blur-sm shadow-lg">
+                Like this free game? ☕ Buy me a coffee
+            </a>
+        </div>
+        
+        <p class="text-xs opacity-70">© 2025 Christina Yu. All rights reserved.</p>
+    </footer>
+
+    <!-- Level Complete / Game Over Modal -->
+    <div id="game-modal" class="modal">
+        <div class="bg-white rounded-[2rem] p-8 text-center max-w-sm w-full shadow-2xl transform transition-all scale-100 border-4 border-white/50">
+            <h2 id="modal-title" class="text-3xl font-black mb-3 text-blue-600">Level Complete!</h2>
+            <p id="modal-message" class="text-gray-600 mb-8 font-medium text-lg">Ready for the next destination?</p>
+            <button id="modal-btn" class="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white font-bold text-xl py-4 px-8 rounded-2xl shadow-lg hover:shadow-blue-300/50 transition transform hover:-translate-y-1 active:scale-95">
+                Next Level
+            </button>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="modal">
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-md mx-4 shadow-2xl border-4 border-yellow-400 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
+            <div class="text-center mb-6">
+                <span class="inline-block bg-yellow-100 text-yellow-800 px-4 py-1 rounded-full font-bold text-sm mb-3">🌍 Geography Challenge</span>
+                <h3 class="text-xl font-bold text-gray-800 leading-relaxed" id="quiz-question">Loading...</h3>
+                <div class="flex justify-center gap-4 mt-3 text-sm font-bold">
+                    <span class="text-green-600 bg-green-50 px-2 py-1 rounded">✅ +2 Moves</span>
+                    <span class="text-red-500 bg-red-50 px-2 py-1 rounded">❌ -3 Moves</span>
+                </div>
+            </div>
+            
+            <div id="quiz-options" class="grid grid-cols-1 gap-3 mb-4">
+                <!-- Options will be injected here -->
+            </div>
+            
+            <div id="quiz-feedback" class="min-h-[3rem] text-center mb-2"></div>
+            
+            <button id="quiz-next-btn" class="hidden w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-gray-700 transition-colors transform active:scale-95">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div id="instructions-modal" class="modal">
+        <div class="bg-white rounded-[2rem] p-6 max-w-sm w-full mx-4 shadow-2xl border-4 border-blue-300">
+            <div class="text-center mb-4">
+                <h2 class="text-2xl font-black text-blue-600 mb-2">✈️ How to Play</h2>
+                <div class="space-y-4 text-left text-gray-700">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-blue-100 p-2 rounded-lg text-2xl">🔗</div>
+                        <div>
+                            <p class="font-bold text-gray-900">Match Landmarks</p>
+                            <p class="text-sm">Swap tiles to match 3 or more identical landmarks to crush them.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="bg-yellow-100 p-2 rounded-lg text-2xl">🧠</div>
+                        <div>
+                            <p class="font-bold text-gray-900">Answer Trivia</p>
+                            <p class="text-sm">Geography questions appear periodically. Correct answers give you EXTRA moves!</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="bg-green-100 p-2 rounded-lg text-2xl">🎯</div>
+                        <div>
+                            <p class="font-bold text-gray-900">The Goal</p>
+                            <p class="text-sm">Reach the target score before you run out of moves. Good luck!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeInstructions()" class="w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition shadow-md active:scale-95">
+                Start Journey!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const gridDisplay = document.querySelector('#grid');
+        const scoreDisplay = document.querySelector('#score-display');
+        const movesDisplay = document.querySelector('#moves-display');
+        const targetDisplay = document.querySelector('#target-display');
+        const levelDisplay = document.querySelector('#level-display');
+        const progressBar = document.querySelector('#progress-bar');
+        const gameBody = document.querySelector('#game-body');
+        
+        // Modals
+        const modal = document.querySelector('#game-modal');
+        const modalTitle = document.querySelector('#modal-title');
+        const modalMessage = document.querySelector('#modal-message');
+        const modalBtn = document.querySelector('#modal-btn');
+        const instructionsModal = document.querySelector('#instructions-modal');
+
+        // Quiz Elements
+        const quizModal = document.querySelector('#quiz-modal');
+        const quizQuestionEl = document.querySelector('#quiz-question');
+        const quizOptionsEl = document.querySelector('#quiz-options');
+        const quizFeedbackEl = document.querySelector('#quiz-feedback');
+        const quizNextBtn = document.querySelector('#quiz-next-btn');
+
+        let width = 5; // Default start width (5x5)
+        const squares = [];
+        
+        // Filtered Landmark Emojis Pool (Strictly Recognizable)
+        const allLandmarkTypes = [
+            '🗼', // Tokyo Tower / Eiffel Tower
+            '🗻', // Fuji
+            '🗿', // Moai
+            '🗽', // Liberty
+            '🕌', // Taj Mahal
+            '🏯', // Japanese Castle
+            '🏰', // European Castle
+            '🌉', // Golden Gate
+            '🏛️', // Parthenon
+            '🏜️', // Pyramids
+            '⛩️', // Torii Gate
+        ];
+        
+        let currentLevelTypes = []; 
+
+        const SCORE_MATCH = 10; 
+        const SCORE_EXPLOSION = 50;
+        const SCORE_QUIZ_CORRECT = 100; 
+        const SCORE_QUIZ_WRONG = -50; 
+        
+        let score = 0;
+        let level = 1;
+        let moves = 20; 
+        let targetScore = 600; 
+        let selectedSquareId = null;
+        let isProcessing = false;
+        let isQuizActive = false;
+        let isLevelComplete = false; 
+        let gameInterval;
+        
+        // Quiz Variables
+        let movesSinceQuiz = 0;
+        const MOVES_PER_QUIZ = 3; 
+
+        // Backgrounds for levels
+        const levelBackgrounds = [
+            'bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-500', // Level 1: Bright Sky
+            'bg-gradient-to-br from-amber-200 via-orange-300 to-rose-400', // Level 2: Warm Sunset
+            'bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600', // Level 3: Tropical
+            'bg-gradient-to-br from-slate-800 via-violet-900 to-fuchsia-900' // Level 4: Night City
+        ];
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 60 Geo Questions (Translated and Adapted)
+        const allGeoQuestions = [
+            { q: "Where is the Eiffel Tower located?", options: ["Paris", "London", "New York", "Tokyo"], correct: 0 },
+            { q: "Mount Fuji is the highest peak in which country?", options: ["Korea", "China", "Japan", "Vietnam"], correct: 2 },
+            { q: "Which country is home to the Pyramids and the Sphinx?", options: ["Mexico", "Egypt", "India", "Greece"], correct: 1 },
+            { q: "In which US city is the Statue of Liberty located?", options: ["Washington D.C.", "Los Angeles", "San Francisco", "New York"], correct: 3 },
+            { q: "Which country is famous for kangaroos and koalas?", options: ["New Zealand", "Australia", "Austria", "South Africa"], correct: 1 },
+            { q: "What is the highest mountain in the world?", options: ["K2", "Mt. Fuji", "Mt. Everest", "The Alps"], correct: 2 },
+            { q: "Where is the Taj Mahal located?", options: ["Thailand", "India", "Indonesia", "Malaysia"], correct: 1 },
+            { q: "What is the capital of the United Kingdom?", options: ["Manchester", "Paris", "London", "Cambridge"], correct: 2 },
+            { q: "Which country is home to Angkor Wat?", options: ["Cambodia", "Thailand", "Myanmar", "Laos"], correct: 0 },
+            { q: "Where are the Moai statues located?", options: ["Hawaii", "Easter Island", "Tahiti", "Guam"], correct: 1 },
+            { q: "Which country has the largest land area in the world?", options: ["USA", "China", "Russia", "Canada"], correct: 2 },
+            { q: "Which Italian city is known as the 'City of Water' and famous for its canals?", options: ["Rome", "Milan", "Venice", "Florence"], correct: 2 },
+            { q: "What is the capital of Japan?", options: ["Osaka", "Kyoto", "Tokyo", "Hokkaido"], correct: 2 },
+            { q: "Where is the Leaning Tower of Pisa located?", options: ["France", "Spain", "Italy", "Greece"], correct: 2 },
+            { q: "On which continent does the Amazon River primarily flow?", options: ["Africa", "South America", "Asia", "North America"], correct: 1 },
+            { q: "What is the traditional dress of Korea called?", options: ["Kimono", "Hanbok", "Qipao", "Saree"], correct: 1 },
+            { q: "Where is the Great Wall located?", options: ["China", "Mongolia", "Vietnam", "Korea"], correct: 0 },
+            { q: "What is the capital of the United States?", options: ["New York", "Chicago", "Washington D.C.", "Seattle"], correct: 2 },
+            { q: "Which country is known as the 'Land of Maple Leaves'?", options: ["USA", "Japan", "Canada", "Germany"], correct: 2 },
+            { q: "Which South American country is famous for Samba and soccer?", options: ["Argentina", "Brazil", "Chile", "Peru"], correct: 1 },
+            { q: "What does the Sydney Opera House look like?", options: ["Sails/Shells", "Mushrooms", "Hats", "Pyramids"], correct: 0 },
+            { q: "What is the capital of Thailand?", options: ["Hanoi", "Jakarta", "Bangkok", "Manila"], correct: 2 },
+            { q: "What is the common currency used by the European Union?", options: ["Dollar", "Pound", "Euro", "Franc"], correct: 2 },
+            { q: "What is the famous traditional noodle soup from Vietnam called?", options: ["Pad Thai", "Pho", "Ramen", "Udon"], correct: 1 },
+            { q: "The two most populous countries in the world are China and...?", options: ["USA", "Indonesia", "India", "Brazil"], correct: 2 },
+            { q: "Which city is historically known as the 'City of Fog'?", options: ["San Francisco", "London", "Seattle", "Beijing"], correct: 1 },
+            { q: "Where is Big Ben located?", options: ["London", "Paris", "Berlin", "Madrid"], correct: 0 },
+            { q: "Which flower is the Netherlands famous for?", options: ["Rose", "Cherry Blossom", "Tulip", "Peony"], correct: 2 },
+            { q: "Where is the Colosseum located?", options: ["Greece", "Italy", "Turkey", "Spain"], correct: 1 },
+            { q: "What is the name of the famous red bridge in San Francisco?", options: ["London Bridge", "Brooklyn Bridge", "Golden Gate Bridge", "Akashi Kaikyo Bridge"], correct: 2 },
+            { q: "What is the smallest country in the world?", options: ["Monaco", "Vatican City", "Maldives", "Singapore"], correct: 1 },
+            { q: "Where are you most likely to see the Aurora Borealis (Northern Lights)?", options: ["Near Equator", "Rainforest", "Near Polar Regions", "Desert"], correct: 2 },
+            { q: "Which country is the world's largest archipelago?", options: ["Philippines", "Indonesia", "Japan", "UK"], correct: 1 },
+            { q: "What is the highest mountain in Africa?", options: ["Mt. Kilimanjaro", "The Alps", "Mt. Fuji", "The Andes"], correct: 0 },
+            { q: "Which city-state is known as the 'Lion City'?", options: ["Sri Lanka", "Singapore", "Malaysia", "Thailand"], correct: 1 },
+            { q: "Which country is known as the 'Emerald Isle'?", options: ["Iceland", "Ireland", "Greenland", "New Zealand"], correct: 1 },
+            { q: "In which US state is Hollywood located?", options: ["California", "Florida", "New York", "Texas"], correct: 0 },
+            { q: "What is the deepest lake in the world?", options: ["Lake Baikal", "Lake Victoria", "Caspian Sea", "Lake Superior"], correct: 0 },
+            { q: "Which country is famous for Bullfighting and Flamenco?", options: ["Mexico", "Portugal", "Spain", "Argentina"], correct: 2 },
+            { q: "What is the capital of Germany?", options: ["Munich", "Berlin", "Frankfurt", "Hamburg"], correct: 1 },
+            { q: "Where is St. Peter's Basilica located?", options: ["Russia", "Vatican City", "Germany", "France"], correct: 1 },
+            { q: "What is widely considered the longest river in the world?", options: ["Yangtze", "Mississippi", "Nile", "Yellow River"], correct: 2 },
+            { q: "Machu Picchu is a ruin of which ancient civilization?", options: ["Maya", "Aztec", "Inca", "Egypt"], correct: 2 },
+            { q: "Which long, narrow South American country is the world's largest copper producer?", options: ["Chile", "Peru", "Brazil", "Argentina"], correct: 0 },
+            { q: "Which historical empire was known as 'The empire on which the sun never sets'?", options: ["Spain", "France", "British Empire", "Portugal"], correct: 2 },
+            { q: "The Dead Sea is bordered by Israel and which other country?", options: ["Jordan", "Egypt", "Turkey", "Iraq"], correct: 0 },
+            { q: "Which plateau is known as the 'Roof of the World'?", options: ["Brazilian Plateau", "Tibetan Plateau", "Deccan Plateau", "Anatolian Plateau"], correct: 1 },
+            { q: "What is Finland famously associated with?", options: ["Santa Claus", "Tulips", "Chocolate", "Pizza"], correct: 0 },
+            { q: "Which country is famous for Sushi and Anime?", options: ["Korea", "China", "Japan", "Thailand"], correct: 2 },
+            { q: "What is the capital of Iceland?", options: ["Oslo", "Reykjavik", "Helsinki", "Copenhagen"], correct: 1 },
+            { q: "Where is Yellowstone National Park located?", options: ["Canada", "USA", "Australia", "New Zealand"], correct: 1 },
+            { q: "Which country is famous for its chocolate and watches?", options: ["Switzerland", "Belgium", "Germany", "Netherlands"], correct: 1 },
+            { q: "On which continent is the Sahara Desert located?", options: ["Africa", "Asia", "Australia", "South America"], correct: 0 },
+            { q: "Where is the Great Barrier Reef located?", options: ["Brazil", "Australia", "Philippines", "Mexico"], correct: 1 },
+            { q: "In which city is the Kremlin located?", options: ["St. Petersburg", "Moscow", "Kiev", "Warsaw"], correct: 1 },
+            { q: "Where is Ha Long Bay located?", options: ["Vietnam", "Thailand", "Philippines", "Malaysia"], correct: 0 },
+            { q: "Turkey is located on which two continents?", options: ["Europe & Asia", "Asia & Africa", "Europe & Africa", "North & South America"], correct: 0 },
+            { q: "What is the most spoken native language in the world?", options: ["English", "Spanish", "Mandarin Chinese", "Arabic"], correct: 2 },
+            { q: "Where is Stonehenge located?", options: ["Ireland", "United Kingdom", "Scotland", "France"], correct: 1 },
+            { q: "What geographical feature is the Norwegian coastline famous for?", options: ["Beaches", "Fjords", "Coral Reefs", "Mangroves"], correct: 1 },
+            { q: "What is the highest mountain in Taiwan?", options: ["Mt. Ali", "Jade Mountain (Yushan)", "Snow Mountain", "Yangmingshan"], correct: 1 },
+            { q: "Where did the popular drink 'Bubble Tea' originate?", options: ["Japan", "Taiwan", "Thailand", "Hong Kong"], correct: 1 }
+        ];
+
+        let availableQuestions = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            availableQuestions = [...allGeoQuestions];
+            
+            // Show instructions first
+            setTimeout(() => {
+                showInstructions();
+            }, 500);
+
+            // Game Loop
+            gameInterval = window.setInterval(() => {
+                if(!modal.classList.contains('active') && !isQuizActive && !isLevelComplete && !instructionsModal.classList.contains('active')) {
+                    moveDown();
+                    checkMatches();
+                }
+            }, 100);
+            
+            document.body.addEventListener('click', () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            }, { once: true });
+        });
+        
+        quizNextBtn.onclick = closeQuiz;
+
+        function showInstructions() {
+            instructionsModal.classList.add('active');
+        }
+
+        function closeInstructions() {
+            instructionsModal.classList.remove('active');
+            if (squares.length === 0) {
+                initLevel();
+            }
+        }
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.4);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        function initLevel() {
+            score = 0;
+            isLevelComplete = false;
+            movesSinceQuiz = 0;
+            selectedSquareId = null;
+            isProcessing = false;
+            isQuizActive = false;
+            
+            // Set Board Size (Mobile Friendly)
+            if (level === 1) {
+                width = 5; // Easier, bigger tiles
+            } else {
+                width = 7; // Harder, decent size
+            }
+
+            // Update CSS for Grid
+            gridDisplay.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+            gridDisplay.style.gridTemplateRows = `repeat(${width}, 1fr)`;
+
+            // Update Background
+            const bgClass = levelBackgrounds[(level - 1) % levelBackgrounds.length];
+            gameBody.className = `min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden text-gray-800 ${bgClass}`;
+
+            // Level Progression
+            const numTypes = Math.min(4 + Math.floor((level - 1) / 2), allLandmarkTypes.length);
+            currentLevelTypes = allLandmarkTypes.slice(0, numTypes);
+            
+            // Adjusted difficulty
+            targetScore = 600 + (level - 1) * 400; 
+            moves = 20 + (level - 1) * 3; 
+            
+            updateUI();
+            
+            gridDisplay.innerHTML = '';
+            squares.length = 0;
+            modal.classList.remove('active');
+            quizModal.classList.remove('active');
+            
+            createBoard();
+        }
+
+        function updateUI() {
+            scoreDisplay.innerHTML = score;
+            movesDisplay.innerHTML = moves;
+            targetDisplay.innerHTML = targetScore;
+            levelDisplay.innerHTML = level;
+            
+            const progress = Math.min((score / targetScore) * 100, 100);
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function createBoard() {
+            for (let i = 0; i < width * width; i++) {
+                const square = document.createElement('div');
+                square.setAttribute('id', i);
+                square.classList.add('tile');
+                
+                // Optimized Tile Size for Mobile
+                if (width === 5) {
+                    square.style.fontSize = 'clamp(32px, 12vw, 56px)';
+                } else {
+                    square.style.fontSize = 'clamp(24px, 8vw, 42px)';
+                }
+
+                let randomType;
+                let isMatch;
+
+                // Ensure no matches on start
+                do {
+                    isMatch = false;
+                    randomType = Math.floor(Math.random() * currentLevelTypes.length);
+                    // Check Left
+                    if (i % width >= 2) {
+                        const left1 = squares[i-1].innerText;
+                        const left2 = squares[i-2].innerText;
+                        if (currentLevelTypes[randomType] === left1 && currentLevelTypes[randomType] === left2) isMatch = true;
+                    }
+                    // Check Up
+                    if (i >= width * 2) {
+                        const top1 = squares[i-width].innerText;
+                        const top2 = squares[i-width*2].innerText;
+                        if (currentLevelTypes[randomType] === top1 && currentLevelTypes[randomType] === top2) isMatch = true;
+                    }
+                } while(isMatch);
+
+                square.innerText = currentLevelTypes[randomType];
+                square.addEventListener('click', () => clickTile(i));
+                gridDisplay.appendChild(square);
+                squares.push(square);
+            }
+        }
+
+        function clickTile(index) {
+            if (isProcessing || isQuizActive || isLevelComplete || moves <= 0 || instructionsModal.classList.contains('active')) return;
+            // Guard clause for array bounds
+            if (!squares[index]) return;
+            const square = squares[index];
+
+            if (selectedSquareId === null) {
+                selectedSquareId = index;
+                square.classList.add('selected');
+                return;
+            }
+
+            if (selectedSquareId === index) {
+                square.classList.remove('selected');
+                selectedSquareId = null;
+                return;
+            }
+
+            const currentSelected = squares[selectedSquareId];
+            
+            const isLeftEdge = selectedSquareId % width === 0;
+            const isRightEdge = selectedSquareId % width === width - 1;
+            let isValidAdjacency = false;
+            if (index === selectedSquareId - width) isValidAdjacency = true; 
+            if (index === selectedSquareId + width) isValidAdjacency = true; 
+            if (index === selectedSquareId - 1 && !isLeftEdge) isValidAdjacency = true; 
+            if (index === selectedSquareId + 1 && !isRightEdge) isValidAdjacency = true; 
+
+            if (isValidAdjacency) {
+                swapTiles(selectedSquareId, index);
+                
+                const isMatch = checkRowForThree(true) || checkColumnForThree(true);
+                
+                if (isMatch) {
+                    currentSelected.classList.remove('selected');
+                    selectedSquareId = null;
+                    isProcessing = false;
+                    
+                    moves--;
+                    movesSinceQuiz++;
+                    updateUI();
+                    
+                    if (movesSinceQuiz >= MOVES_PER_QUIZ && moves > 0 && !isLevelComplete) {
+                        setTimeout(() => triggerQuiz(), 600); 
+                    } else {
+                        checkGameStatus();
+                    }
+                } else {
+                    isProcessing = true;
+                    currentSelected.classList.remove('selected');
+                    currentSelected.classList.add('shake');
+                    squares[index].classList.add('shake');
+                    
+                    setTimeout(() => {
+                        swapTiles(selectedSquareId, index);
+                        currentSelected.classList.remove('shake');
+                        squares[index].classList.remove('shake');
+                        selectedSquareId = null;
+                        isProcessing = false;
+                    }, 400);
+                }
+            } else {
+                currentSelected.classList.remove('selected');
+                selectedSquareId = index;
+                square.classList.add('selected');
+            }
+        }
+
+        function swapTiles(id1, id2) {
+            // Guard clause
+            if (!squares[id1] || !squares[id2]) return;
+            const tempText = squares[id1].innerText;
+            squares[id1].innerText = squares[id2].innerText;
+            squares[id2].innerText = tempText;
+
+            const is1Super = squares[id1].classList.contains('super-item');
+            const is2Super = squares[id2].classList.contains('super-item');
+            
+            if(is1Super) squares[id1].classList.remove('super-item');
+            if(is2Super) squares[id2].classList.remove('super-item');
+            
+            if(is1Super) squares[id2].classList.add('super-item');
+            if(is2Super) squares[id1].classList.add('super-item');
+        }
+
+        function checkMatches() {
+            if (squares.length < width * width) return;
+            checkRowForThree();
+            checkColumnForThree();
+            updateUI();
+        }
+
+        function triggerQuiz() {
+            if(isLevelComplete) return; 
+            isQuizActive = true;
+            quizModal.classList.add('active');
+            quizNextBtn.classList.add('hidden');
+            
+            if (availableQuestions.length === 0) {
+                availableQuestions = [...allGeoQuestions];
+            }
+
+            const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+            const qData = availableQuestions[randomIndex];
+            availableQuestions.splice(randomIndex, 1);
+
+            // Randomize Options Order
+            const optionsWithIndices = qData.options.map((opt, i) => ({
+                text: opt,
+                originalIndex: i
+            }));
+            
+            // Fisher-Yates Shuffle
+            for (let i = optionsWithIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [optionsWithIndices[i], optionsWithIndices[j]] = [optionsWithIndices[j], optionsWithIndices[i]];
+            }
+
+            const correctText = qData.options[qData.correct];
+
+            quizQuestionEl.innerText = qData.q;
+            quizOptionsEl.innerHTML = '';
+            quizFeedbackEl.innerHTML = '';
+            
+            optionsWithIndices.forEach((optObj) => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-option w-full bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold py-3 px-4 rounded-xl border-2 border-blue-200 shadow-sm text-lg";
+                btn.innerText = optObj.text;
+                // Check against original index
+                btn.onclick = () => handleQuizAnswer(optObj.originalIndex === qData.correct, btn, correctText);
+                quizOptionsEl.appendChild(btn);
+            });
+        }
+
+        function handleQuizAnswer(isCorrect, btnElement, correctText) {
+            const buttons = quizOptionsEl.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                playSound('correct');
+                score += SCORE_QUIZ_CORRECT;
+                moves += 2; 
+                btnElement.classList.remove('bg-blue-50', 'hover:bg-blue-100', 'text-blue-800', 'border-blue-200');
+                btnElement.classList.add('bg-green-500', 'text-white', 'border-green-600', 'shadow-md');
+                quizFeedbackEl.innerHTML = `<span class='font-black text-xl text-green-600'>Correct! +${SCORE_QUIZ_CORRECT} Score<br>+2 Moves!</span>`;
+            } else {
+                playSound('wrong');
+                score = Math.max(0, score + SCORE_QUIZ_WRONG);
+                moves -= 3;
+                btnElement.classList.remove('bg-blue-50', 'hover:bg-blue-100', 'text-blue-800', 'border-blue-200');
+                btnElement.classList.add('bg-red-500', 'text-white', 'border-red-600', 'shadow-md');
+                
+                quizFeedbackEl.innerHTML = `
+                    <div class="mb-3">
+                        <span class='font-black text-xl text-red-600 block'>Wrong! ${SCORE_QUIZ_WRONG} Score, -3 Moves!</span>
+                    </div>
+                    <div class="p-4 bg-green-50 border-4 border-green-400 rounded-2xl shadow-lg animate-[pulse_1s_infinite]">
+                        <p class="text-xs font-black text-gray-500 uppercase mb-1 tracking-widest">Correct Answer</p>
+                        <p class="text-3xl font-black text-green-600 drop-shadow-sm">${correctText}</p>
+                    </div>
+                `;
+            }
+            
+            updateUI();
+            quizNextBtn.classList.remove('hidden');
+        }
+        
+        function closeQuiz() {
+            quizModal.classList.remove('active');
+            quizNextBtn.classList.add('hidden');
+            isQuizActive = false;
+            movesSinceQuiz = 0;
+            checkGameStatus();
+        }
+
+        function checkGameStatus() {
+            if (isQuizActive || isLevelComplete || instructionsModal.classList.contains('active')) return; 
+
+            if (score >= targetScore) {
+                isLevelComplete = true; 
+                setTimeout(() => showModal(true), 500);
+            } else if (moves <= 0) {
+                setTimeout(() => {
+                    if(score < targetScore) showModal(false);
+                }, 500);
+            }
+        }
+
+        function showModal(win) {
+            modal.classList.add('active');
+            if (win) {
+                modalTitle.innerText = "Level Complete!";
+                modalTitle.className = "text-3xl font-black mb-2 text-blue-600";
+                modalMessage.innerText = `Score: ${score}. Ready for the next trip?`;
+                modalBtn.innerText = "Next Level";
+                modalBtn.className = "w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white font-bold text-xl py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 active:scale-95";
+                modalBtn.onclick = nextLevel;
+            } else {
+                modalTitle.innerText = "Journey Paused!";
+                modalTitle.className = "text-3xl font-black mb-2 text-red-500";
+                modalMessage.innerText = `Out of moves! You needed ${targetScore - score} more points. Brush up on your geography!`;
+                modalBtn.innerText = "Try Again";
+                modalBtn.className = "w-full bg-gray-700 text-white font-bold text-xl py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 active:scale-95";
+                modalBtn.onclick = restartLevel;
+            }
+        }
+
+        function nextLevel() {
+            level++;
+            initLevel();
+        }
+
+        function restartLevel() {
+            initLevel();
+        }
+
+        function checkRowForThree(dryRun = false) {
+            if (squares.length < width * width) return false;
+            let matchFound = false;
+            for (let i = 0; i < width * width; i++) {
+                if (i % width > width - 3) continue;
+                
+                let rowOfThree = [i, i + 1, i + 2];
+                if (!squares[i]) continue;
+                let decidedType = squares[i].innerText;
+                const isBlank = squares[i].innerText === '';
+
+                if (rowOfThree.every(index => squares[index] && squares[index].innerText === decidedType && !isBlank)) {
+                    matchFound = true;
+                    if (!dryRun) executeMatch(rowOfThree);
+                }
+            }
+            return matchFound;
+        }
+
+        function checkColumnForThree(dryRun = false) {
+             if (squares.length < width * width) return false;
+            let matchFound = false;
+            for (let i = 0; i < width * (width - 2); i++) {
+                let columnOfThree = [i, i + width, i + width * 2];
+                if (!squares[i]) continue;
+                let decidedType = squares[i].innerText;
+                const isBlank = squares[i].innerText === '';
+
+                if (columnOfThree.every(index => squares[index] && squares[index].innerText === decidedType && !isBlank)) {
+                    matchFound = true;
+                    if (!dryRun) executeMatch(columnOfThree);
+                }
+            }
+            return matchFound;
+        }
+
+        function executeMatch(indices) {
+            let points = SCORE_MATCH;
+            let exploded = false;
+
+            indices.forEach(index => {
+                if (squares[index] && squares[index].classList.contains('super-item')) {
+                    explode(index);
+                    exploded = true;
+                    points += SCORE_EXPLOSION;
+                }
+            });
+
+            if (!exploded) {
+                score += points;
+                if (squares[indices[1]]) showFloatingText(squares[indices[1]], `+${points}`);
+                indices.forEach(index => {
+                    if (squares[index]) {
+                        squares[index].classList.add('matched');
+                        setTimeout(() => {
+                            if (squares[index]) {
+                                squares[index].innerText = '';
+                                squares[index].classList.remove('matched');
+                                squares[index].classList.remove('super-item');
+                            }
+                        }, 300);
+                    }
+                });
+            } else {
+                score += points;
+            }
+            
+            checkGameStatus();
+        }
+
+        function explode(centerIndex) {
+            const centerRow = Math.floor(centerIndex / width);
+            const centerCol = centerIndex % width;
+            
+            for(let r = centerRow - 1; r <= centerRow + 1; r++) {
+                for(let c = centerCol - 1; c <= centerCol + 1; c++) {
+                    if(r >= 0 && r < width && c >= 0 && c < width) {
+                        const idx = r * width + c;
+                        if(squares[idx] && squares[idx].innerText !== '') {
+                            score += 5; 
+                            squares[idx].classList.add('matched');
+                            setTimeout(() => {
+                                if (squares[idx]) {
+                                    squares[idx].innerText = '';
+                                    squares[idx].classList.remove('matched');
+                                    squares[idx].classList.remove('super-item');
+                                }
+                            }, 300);
+                        }
+                    }
+                }
+            }
+            if (squares[centerIndex]) showFloatingText(squares[centerIndex], "BOOM!");
+        }
+
+        function moveDown() {
+            if (squares.length < width * width) return;
+
+            for (let i = 0; i < width * (width - 1); i++) {
+                // Ensure squares exist
+                if (!squares[i + width] || !squares[i]) continue;
+
+                if (squares[i + width].innerText === '') {
+                    squares[i + width].innerText = squares[i].innerText;
+                    
+                    if (squares[i].classList.contains('super-item')) {
+                        squares[i + width].classList.add('super-item');
+                        squares[i].classList.remove('super-item');
+                    } else {
+                        squares[i + width].classList.remove('super-item');
+                    }
+
+                    squares[i].innerText = '';
+                    squares[i].classList.remove('super-item');
+                }
+                
+                const firstRow = Array.from({length: width}, (_, k) => k);
+                if (firstRow.includes(i) && squares[i].innerText === '') {
+                    let randomType;
+                    let attempt = 0;
+                    
+                    do {
+                        randomType = Math.floor(Math.random() * currentLevelTypes.length);
+                        attempt++;
+                    } while (
+                        attempt < 10 && (
+                            (squares[i + width] && squares[i + width].innerText === currentLevelTypes[randomType]) || 
+                            (i > 0 && squares[i - 1] && squares[i - 1].innerText === currentLevelTypes[randomType])
+                        )
+                    );
+
+                    squares[i].innerText = currentLevelTypes[randomType];
+                    
+                    if (Math.random() < 0.005) {
+                        squares[i].classList.add('super-item');
+                    } else {
+                        squares[i].classList.remove('super-item');
+                    }
+                }
+            }
+        }
+
+        function showFloatingText(element, text) {
+            if(!element) return;
+            const rect = element.getBoundingClientRect();
+            const floatEl = document.createElement('div');
+            floatEl.innerText = text;
+            floatEl.classList.add('floating-text');
+            floatEl.style.left = rect.left + 'px';
+            floatEl.style.top = rect.top + 'px';
+            document.body.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1000);
+        }
+
+    </script>
+</body>
+</html>

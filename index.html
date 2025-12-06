@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>World Travel</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 1. Font: Poppins for English text */
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
@@ -191,6 +191,16 @@
             background: rgba(255, 255, 255, 0.35);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+        .reset-btn {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+            margin-top: 10px;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .reset-btn:hover {
+            color: white;
+        }
     </style>
 </head>
 <body id="game-body" class="min-h-screen flex flex-col items-center p-1 pb-24 overflow-hidden text-gray-800 relative">
@@ -234,13 +244,15 @@
     </div>
 
     <footer class="credits">
-         <div class="support-cta">
+        <div class="support-cta">
             <a href="https://portaly.cc/mamahowma/support" target="_blank" rel="noopener noreferrer" class="support-btn">
                 Like this free game? ☕ Buy me a coffee
             </a>
         </div>
-        
-        <p class="text-xs opacity-70 mt-2">© 2025 Christina Yu. All rights reserved.</p>
+        <div>
+            © 2025 Christina Yu. All rights reserved.
+        </div>
+        <button onclick="fullReset()" class="reset-btn">🔄 Reset Progress (Start from Level 1)</button>
     </footer>
 
     <div id="game-modal" class="modal">
@@ -253,8 +265,8 @@
         </div>
     </div>
 
-   <div id="quiz-modal" class="modal">
-    <div class="bg-white rounded-[2rem] p-6 w-full max-w-lg mx-2 shadow-2xl border-4 border-yellow-400 relative overflow-hidden">
+    <div id="quiz-modal" class="modal">
+        <div class="bg-white rounded-[2rem] p-6 w-full max-w-lg mx-2 shadow-2xl border-4 border-yellow-400 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
             <div class="text-center mb-6">
                 <span class="inline-block bg-yellow-100 text-yellow-800 px-4 py-1 rounded-full font-bold text-sm mb-3">🌍 Geography Challenge</span>
@@ -384,7 +396,7 @@
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 60 Geo Questions (English)
+        // 100 Geo Questions (English)
         const allGeoQuestions = [
             { q: "Where is the Eiffel Tower located?", options: ["Paris", "London", "New York", "Tokyo"], correct: 0 },
             { q: "Mount Fuji is the highest peak in which country?", options: ["Korea", "China", "Japan", "Vietnam"], correct: 2 },
@@ -449,57 +461,107 @@
             { q: "What is the highest mountain in Taiwan?", options: ["Mt. Ali", "Jade Mountain (Yushan)", "Snow Mountain", "Yangmingshan"], correct: 1 },
             { q: "Where did the popular drink 'Bubble Tea' originate?", options: ["Japan", "Taiwan", "Thailand", "Hong Kong"], correct: 1 },
             // --- New Expanded Questions (Total 100) ---
-    { q: "In which country is Barcelona located?", options: ["Portugal", "Italy", "Spain", "France"], correct: 2 },
-    { q: "Where is the famous Neuschwanstein Castle located?", options: ["Austria", "Switzerland", "Germany", "Belgium"], correct: 2 },
-    { q: "Which Central American country is crossed by a famous world canal?", options: ["Panama", "Costa Rica", "Nicaragua", "Cuba"], correct: 0 },
-    { q: "Angkor Wat is a national treasure of which country?", options: ["Cambodia", "Thailand", "Laos", "Vietnam"], correct: 0 },
-    { q: "Where did the first Disneyland park open?", options: ["Florida", "California", "Tokyo", "Paris"], correct: 1 },
-    { q: "Where are Red Square and St. Basil's Cathedral located?", options: ["Kiev", "Moscow", "St. Petersburg", "Minsk"], correct: 1 },
-    { q: "Where is the world's tallest building, the Burj Khalifa, located?", options: ["Saudi Arabia", "Qatar", "Dubai (UAE)", "Kuwait"], correct: 2 },
-    { q: "Which country is famous for tulips and windmills?", options: ["Denmark", "Netherlands", "Belgium", "Poland"], correct: 1 },
-    { q: "Which country is known as the 'Land of a Thousand Lakes'?", options: ["Norway", "Sweden", "Finland", "Canada"], correct: 2 },
-    { q: "Where is the famous Louvre Museum located?", options: ["London", "Paris", "Rome", "Berlin"], correct: 1 },
-    { q: "Macarons are a representative dessert of which country?", options: ["Italy", "France", "Belgium", "Austria"], correct: 1 },
-    { q: "Which city is the birthplace of Pizza?", options: ["New York", "Rome", "Naples", "Milan"], correct: 2 },
-    { q: "Which country possesses the Great Barrier Reef?", options: ["Australia", "New Zealand", "Indonesia", "Fiji"], correct: 0 },
-    { q: "The Kiwi is the national bird of which country?", options: ["Australia", "New Zealand", "Papua New Guinea", "Fiji"], correct: 1 },
-    { q: "Which Japanese city is a famous ancient capital known for its temples?", options: ["Tokyo", "Osaka", "Kyoto", "Nara"], correct: 2 },
-    { q: "The majority of the Amazon Rainforest is within which country?", options: ["Colombia", "Peru", "Brazil", "Venezuela"], correct: 2 },
-    { q: "Niagara Falls borders the USA and which other country?", options: ["Mexico", "Cuba", "Canada", "Greenland"], correct: 2 },
-    { q: "Muay Thai is the traditional martial art of which country?", options: ["Cambodia", "Thailand", "Myanmar", "Laos"], correct: 1 },
-    { q: "Where is the legendary home of Count Dracula?", options: ["Romania", "Bulgaria", "Hungary", "Serbia"], correct: 0 },
-    { q: "The car brand BMW originated in which country?", options: ["USA", "Japan", "Germany", "Sweden"], correct: 2 },
-    { q: "Which country has the longest, narrowest shape in the world?", options: ["Italy", "Chile", "Vietnam", "Norway"], correct: 1 },
-    { q: "Mahatma Gandhi is a historical figure from which country?", options: ["Pakistan", "Bangladesh", "India", "Nepal"], correct: 2 },
-    { q: "Where did LEGO originate?", options: ["USA", "Germany", "Denmark", "Sweden"], correct: 2 },
-    { q: "Where did Bubble Tea originate?", options: ["Hong Kong", "Thailand", "Taiwan", "Japan"], correct: 2 },
-    { q: "Which country did IKEA originate from?", options: ["Finland", "Norway", "Sweden", "Denmark"], correct: 2 },
-    { q: "Where is La Paz, the highest administrative capital in the world?", options: ["Bolivia", "Peru", "Ecuador", "Colombia"], correct: 0 },
-    { q: "Where are the Pantheon and the Trevi Fountain located?", options: ["Athens", "Rome", "Istanbul", "Cairo"], correct: 1 },
-    { q: "Where is the iconic Marina Bay Sands hotel located?", options: ["Dubai", "Malaysia", "Singapore", "Hong Kong"], correct: 2 },
-    { q: "Which mountain range is famous for Alpacas?", options: ["The Alps", "Himalayas", "The Andes", "Rockies"], correct: 2 },
-    { q: "Where are the Nobel Prizes awarded annually (except the Peace Prize)?", options: ["Switzerland", "Sweden", "Norway", "Denmark"], correct: 1 },
-    { q: "The 'Ao Dai' is the traditional dress of which country?", options: ["Vietnam", "Japan", "Korea", "India"], correct: 0 },
-    { q: "Famous 'Floating Markets' are commonly seen in?", options: ["Thailand", "Japan", "Korea", "Mongolia"], correct: 0 },
-    { q: "Which place is famous for Oolong Tea and Alishan?", options: ["China", "Japan", "Taiwan", "Vietnam"], correct: 2 },
-    { q: "Where is the legend of the Loch Ness Monster from?", options: ["Ireland", "Scotland", "Wales", "England"], correct: 1 },
-    { q: "Ferrari sports cars originate from?", options: ["France", "Germany", "Italy", "Spain"], correct: 2 },
-    { q: "Where is the giant rock 'Uluru' (Ayers Rock) located?", options: ["USA", "Brazil", "Australia", "South Africa"], correct: 2 },
-    { q: "Which culture did 'Sauna' originate from?", options: ["Japan", "Finland", "Turkey", "Iceland"], correct: 1 },
-    { q: "Where is Harry Potter author J.K. Rowling from?", options: ["USA", "United Kingdom", "Australia", "Canada"], correct: 1 },
-    { q: "The company Samsung originated in?", options: ["Japan", "China", "South Korea", "Taiwan"], correct: 2 },
-    { q: "The famous resort island 'Bali' belongs to which country?", options: ["Thailand", "Malaysia", "Philippines", "Indonesia"], correct: 3 }
+            { q: "In which country is Barcelona located?", options: ["Portugal", "Italy", "Spain", "France"], correct: 2 },
+            { q: "Where is the famous Neuschwanstein Castle located?", options: ["Austria", "Switzerland", "Germany", "Belgium"], correct: 2 },
+            { q: "Which Central American country is crossed by a famous world canal?", options: ["Panama", "Costa Rica", "Nicaragua", "Cuba"], correct: 0 },
+            { q: "Angkor Wat is a national treasure of which country?", options: ["Cambodia", "Thailand", "Laos", "Vietnam"], correct: 0 },
+            { q: "Where did the first Disneyland park open?", options: ["Florida", "California", "Tokyo", "Paris"], correct: 1 },
+            { q: "Where are Red Square and St. Basil's Cathedral located?", options: ["Kiev", "Moscow", "St. Petersburg", "Minsk"], correct: 1 },
+            { q: "Where is the world's tallest building, the Burj Khalifa, located?", options: ["Saudi Arabia", "Qatar", "Dubai (UAE)", "Kuwait"], correct: 2 },
+            { q: "Which country is famous for tulips and windmills?", options: ["Denmark", "Netherlands", "Belgium", "Poland"], correct: 1 },
+            { q: "Which country is known as the 'Land of a Thousand Lakes'?", options: ["Norway", "Sweden", "Finland", "Canada"], correct: 2 },
+            { q: "Where is the famous Louvre Museum located?", options: ["London", "Paris", "Rome", "Berlin"], correct: 1 },
+            { q: "Macarons are a representative dessert of which country?", options: ["Italy", "France", "Belgium", "Austria"], correct: 1 },
+            { q: "Which city is the birthplace of Pizza?", options: ["New York", "Rome", "Naples", "Milan"], correct: 2 },
+            { q: "Which country possesses the Great Barrier Reef?", options: ["Australia", "New Zealand", "Indonesia", "Fiji"], correct: 0 },
+            { q: "The Kiwi is the national bird of which country?", options: ["Australia", "New Zealand", "Papua New Guinea", "Fiji"], correct: 1 },
+            { q: "Which Japanese city is a famous ancient capital known for its temples?", options: ["Tokyo", "Osaka", "Kyoto", "Nara"], correct: 2 },
+            { q: "The majority of the Amazon Rainforest is within which country?", options: ["Colombia", "Peru", "Brazil", "Venezuela"], correct: 2 },
+            { q: "Niagara Falls borders the USA and which other country?", options: ["Mexico", "Cuba", "Canada", "Greenland"], correct: 2 },
+            { q: "Muay Thai is the traditional martial art of which country?", options: ["Cambodia", "Thailand", "Myanmar", "Laos"], correct: 1 },
+            { q: "Where is the legendary home of Count Dracula?", options: ["Romania", "Bulgaria", "Hungary", "Serbia"], correct: 0 },
+            { q: "The car brand BMW originated in which country?", options: ["USA", "Japan", "Germany", "Sweden"], correct: 2 },
+            { q: "Which country has the longest, narrowest shape in the world?", options: ["Italy", "Chile", "Vietnam", "Norway"], correct: 1 },
+            { q: "Mahatma Gandhi is a historical figure from which country?", options: ["Pakistan", "Bangladesh", "India", "Nepal"], correct: 2 },
+            { q: "Where did LEGO originate?", options: ["USA", "Germany", "Denmark", "Sweden"], correct: 2 },
+            { q: "Where did Bubble Tea originate?", options: ["Hong Kong", "Thailand", "Taiwan", "Japan"], correct: 2 },
+            { q: "Which country did IKEA originate from?", options: ["Finland", "Norway", "Sweden", "Denmark"], correct: 2 },
+            { q: "Where is La Paz, the highest administrative capital in the world?", options: ["Bolivia", "Peru", "Ecuador", "Colombia"], correct: 0 },
+            { q: "Where are the Pantheon and the Trevi Fountain located?", options: ["Athens", "Rome", "Istanbul", "Cairo"], correct: 1 },
+            { q: "Where is the iconic Marina Bay Sands hotel located?", options: ["Dubai", "Malaysia", "Singapore", "Hong Kong"], correct: 2 },
+            { q: "Which mountain range is famous for Alpacas?", options: ["The Alps", "Himalayas", "The Andes", "Rockies"], correct: 2 },
+            { q: "Where are the Nobel Prizes awarded annually (except the Peace Prize)?", options: ["Switzerland", "Sweden", "Norway", "Denmark"], correct: 1 },
+            { q: "The 'Ao Dai' is the traditional dress of which country?", options: ["Vietnam", "Japan", "Korea", "India"], correct: 0 },
+            { q: "Famous 'Floating Markets' are commonly seen in?", options: ["Thailand", "Japan", "Korea", "Mongolia"], correct: 0 },
+            { q: "Which place is famous for Oolong Tea and Alishan?", options: ["China", "Japan", "Taiwan", "Vietnam"], correct: 2 },
+            { q: "Where is the legend of the Loch Ness Monster from?", options: ["Ireland", "Scotland", "Wales", "England"], correct: 1 },
+            { q: "Ferrari sports cars originate from?", options: ["France", "Germany", "Italy", "Spain"], correct: 2 },
+            { q: "Where is the giant rock 'Uluru' (Ayers Rock) located?", options: ["USA", "Brazil", "Australia", "South Africa"], correct: 2 },
+            { q: "Which culture did 'Sauna' originate from?", options: ["Japan", "Finland", "Turkey", "Iceland"], correct: 1 },
+            { q: "Where is Harry Potter author J.K. Rowling from?", options: ["USA", "United Kingdom", "Australia", "Canada"], correct: 1 },
+            { q: "The company Samsung originated in?", options: ["Japan", "China", "South Korea", "Taiwan"], correct: 2 },
+            { q: "The famous resort island 'Bali' belongs to which country?", options: ["Thailand", "Malaysia", "Philippines", "Indonesia"], correct: 3 }
         ];
 
         let availableQuestions = [];
 
+        // 🔥 Save/Load Logic
+        function saveGame() {
+            const gameState = {
+                score: score,
+                level: level,
+                moves: moves,
+                availableQuestions: availableQuestions 
+            };
+            localStorage.setItem('worldTravelSave_EN', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('worldTravelSave_EN');
+            if (saved) {
+                const gameState = JSON.parse(saved);
+                score = gameState.score;
+                level = gameState.level;
+                moves = gameState.moves;
+                availableQuestions = gameState.availableQuestions;
+                
+                if (!availableQuestions || availableQuestions.length === 0) {
+                    availableQuestions = [...allGeoQuestions];
+                }
+                return true; 
+            }
+            return false; 
+        }
+        
+        function fullReset() {
+            if(confirm('Are you sure you want to reset your progress? This will take you back to Level 1.')) {
+                localStorage.removeItem('worldTravelSave_EN');
+                location.reload(); 
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            availableQuestions = [...allGeoQuestions];
-            
-            // Show instructions first
-            setTimeout(() => {
-                showInstructions();
-            }, 500);
+            // 🔥 Check for Save Game
+            if (loadGame()) {
+                if (level === 1) width = 5; else width = 7;
+                const bgClass = levelBackgrounds[(level - 1) % levelBackgrounds.length];
+                gameBody.className = `min-h-screen flex flex-col items-center p-1 pb-24 overflow-hidden text-gray-800 relative ${bgClass}`;
+                gridDisplay.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+                gridDisplay.style.gridTemplateRows = `repeat(${width}, 1fr)`;
+                const numTypes = Math.min(4 + Math.floor((level - 1) / 2), allLandmarkTypes.length);
+                currentLevelTypes = allLandmarkTypes.slice(0, numTypes);
+                
+                targetScore = 600 + (level - 1) * 400; 
+
+                updateUI();
+                createBoard();
+            } else {
+                availableQuestions = [...allGeoQuestions];
+                setTimeout(() => {
+                    showInstructions();
+                }, 500);
+                initLevel();
+            }
 
             // Game Loop
             gameInterval = window.setInterval(() => {
@@ -555,6 +617,7 @@
         }
 
         function initLevel() {
+            // New level = fresh start, but we save it
             score = 0;
             isLevelComplete = false;
             movesSinceQuiz = 0;
@@ -562,26 +625,21 @@
             isProcessing = false;
             isQuizActive = false;
             
-            // Set Board Size (Mobile Friendly)
             if (level === 1) {
-                width = 5; // Easier, bigger tiles
+                width = 5; 
             } else {
-                width = 7; // Harder, decent size
+                width = 7; 
             }
 
-            // Update CSS for Grid
             gridDisplay.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
             gridDisplay.style.gridTemplateRows = `repeat(${width}, 1fr)`;
 
-            // Update Background
             const bgClass = levelBackgrounds[(level - 1) % levelBackgrounds.length];
             gameBody.className = `min-h-screen flex flex-col items-center p-1 pb-24 overflow-hidden text-gray-800 relative ${bgClass}`;
 
-            // Level Progression
             const numTypes = Math.min(4 + Math.floor((level - 1) / 2), allLandmarkTypes.length);
             currentLevelTypes = allLandmarkTypes.slice(0, numTypes);
             
-            // Adjusted difficulty
             targetScore = 600 + (level - 1) * 400; 
             moves = 20 + (level - 1) * 3; 
             
@@ -593,6 +651,7 @@
             quizModal.classList.remove('active');
             
             createBoard();
+            saveGame(); // Auto-save on level init
         }
 
         function updateUI() {
@@ -611,7 +670,7 @@
                 square.setAttribute('id', i);
                 square.classList.add('tile');
                 
-                // 🔥 Font Size Optimized for new larger tiles
+                // 🔥 Font Size Optimized for new larger tiles (13vw / 9.5vw)
                 if (width === 5) {
                     square.style.fontSize = 'clamp(32px, 13vw, 60px)'; 
                 } else {
@@ -692,6 +751,7 @@
                         setTimeout(() => triggerQuiz(), 600); 
                     } else {
                         checkGameStatus();
+                        saveGame(); // Save after move
                     }
                 } else {
                     isProcessing = true;
@@ -772,7 +832,7 @@
             
             optionsWithIndices.forEach((optObj) => {
                 const btn = document.createElement('button');
-                btn.className = "quiz-option w-full bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold py-2 px-4 rounded-xl border-2 border-blue-200 shadow-sm text-base"; // text-base instead of text-lg for compact fit
+                btn.className = "quiz-option w-full bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold py-2 px-4 rounded-xl border-2 border-blue-200 shadow-sm text-base";
                 btn.innerText = optObj.text;
                 // Check against original index
                 btn.onclick = () => handleQuizAnswer(optObj.originalIndex === qData.correct, btn, correctText);
@@ -812,6 +872,7 @@
             
             updateUI();
             quizNextBtn.classList.remove('hidden');
+            saveGame(); // Save after quiz
         }
         
         function closeQuiz() {
@@ -857,46 +918,11 @@
         function nextLevel() {
             level++;
             initLevel();
+            saveGame(); // Save on new level
         }
 
         function restartLevel() {
             initLevel();
-        }
-
-        function checkRowForThree(dryRun = false) {
-            if (squares.length < width * width) return false;
-            let matchFound = false;
-            for (let i = 0; i < width * width; i++) {
-                if (i % width > width - 3) continue;
-                
-                let rowOfThree = [i, i + 1, i + 2];
-                if (!squares[i]) continue;
-                let decidedType = squares[i].innerText;
-                const isBlank = squares[i].innerText === '';
-
-                if (rowOfThree.every(index => squares[index] && squares[index].innerText === decidedType && !isBlank)) {
-                    matchFound = true;
-                    if (!dryRun) executeMatch(rowOfThree);
-                }
-            }
-            return matchFound;
-        }
-
-        function checkColumnForThree(dryRun = false) {
-             if (squares.length < width * width) return false;
-            let matchFound = false;
-            for (let i = 0; i < width * (width - 2); i++) {
-                let columnOfThree = [i, i + width, i + width * 2];
-                if (!squares[i]) continue;
-                let decidedType = squares[i].innerText;
-                const isBlank = squares[i].innerText === '';
-
-                if (columnOfThree.every(index => squares[index] && squares[index].innerText === decidedType && !isBlank)) {
-                    matchFound = true;
-                    if (!dryRun) executeMatch(columnOfThree);
-                }
-            }
-            return matchFound;
         }
 
         function executeMatch(indices) {
@@ -931,6 +957,7 @@
             }
             
             checkGameStatus();
+            saveGame(); // Save after match
         }
 
         function explode(centerIndex) {

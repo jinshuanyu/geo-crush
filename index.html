@@ -270,7 +270,16 @@
             <div class="text-center mb-6">
                 <span class="inline-block bg-yellow-100 text-yellow-800 px-4 py-1 rounded-full font-bold text-sm mb-3">🌍 Geography Challenge</span>
                 
-                <h3 class="text-lg font-bold text-gray-800 leading-relaxed" id="quiz-question">Loading...</h3>
+                <!-- ✅ Question + Speak Button -->
+                <div class="flex items-start justify-between gap-2">
+                    <h3 class="text-lg font-bold text-gray-800 leading-relaxed flex-1" id="quiz-question">Loading...</h3>
+                    <button id="quiz-speak-btn"
+                        class="shrink-0 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-black px-2 py-1 rounded-lg text-sm border border-yellow-200 transition active:scale-95"
+                        aria-label="Read quiz aloud"
+                        title="Read question and options">
+                        🔊
+                    </button>
+                </div>
                 
                 <div class="flex justify-center gap-4 mt-3 text-sm font-bold">
                     <span class="text-green-600 bg-green-50 px-2 py-1 rounded">✅ +2 Moves</span>
@@ -292,7 +301,17 @@
     <div id="instructions-modal" class="modal">
         <div class="bg-white rounded-[2rem] p-6 max-w-sm w-full mx-4 shadow-2xl border-4 border-blue-300">
             <div class="text-center mb-4">
-                <h2 class="text-2xl font-black text-blue-600 mb-2">✈️ How to Play</h2>
+                
+                <!-- ✅ Title + Read Aloud Button -->
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-2xl font-black text-blue-600">✈️ How to Play</h2>
+                    <button id="instructions-speak-btn"
+                        class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1 rounded-full text-sm border border-blue-200 transition active:scale-95"
+                        aria-label="Read instructions aloud">
+                        🔊 Read Aloud
+                    </button>
+                </div>
+
                 <div class="space-y-4 text-left text-gray-700">
                     <div class="flex items-start gap-3">
                         <div class="bg-blue-100 p-2 rounded-lg text-2xl">🔗</div>
@@ -498,7 +517,89 @@ function shuffleBoard() {
             }
         }
 
+        // ================================
+        // Web Speech API (en-US) Read Aloud
+        // ================================
+        const synth = window.speechSynthesis;
+        let speechToken = 0; // 每次 cancel 都會遞增，防止 onend 鬼續播
+
+        function cancelSpeech() {
+            speechToken++;
+            try { synth.cancel(); } catch (e) {}
+        }
+
+        function speakQueue(items) {
+            if (!synth) return;
+            cancelSpeech(); // 每次新的朗讀先清場
+
+            const myToken = speechToken;
+
+            let idx = 0;
+            const runNext = () => {
+                if (myToken !== speechToken) return; // 已被中斷
+                if (idx >= items.length) return;
+
+                const { text, delayAfter = 0 } = items[idx++];
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = "en-US";
+
+                u.onend = () => {
+                    if (myToken !== speechToken) return;
+                    if (delayAfter > 0) {
+                        setTimeout(runNext, delayAfter);
+                    } else {
+                        runNext();
+                    }
+                };
+
+                u.onerror = () => {
+                    if (myToken !== speechToken) return;
+                    runNext();
+                };
+
+                try { synth.speak(u); } catch (e) {}
+            };
+
+            runNext();
+        }
+
+        function speakInstructions() {
+            const lines = [
+                { text: "How to Play.", delayAfter: 200 },
+                { text: "Match landmarks.", delayAfter: 150 },
+                { text: "Swap tiles to match three or more identical landmarks to crush them.", delayAfter: 150 },
+                { text: "Answer trivia questions when they appear.", delayAfter: 150 },
+                { text: "Correct answers give you extra moves.", delayAfter: 150 },
+                { text: "Wrong answers reduce your moves.", delayAfter: 150 },
+                { text: "Reach the target score before you run out of moves.", delayAfter: 150 },
+                { text: "Good luck and enjoy your journey." }
+            ];
+            speakQueue(lines);
+        }
+
+        function speakCurrentQuiz() {
+            if (!quizModal.classList.contains('active')) return;
+
+            const qText = (quizQuestionEl?.innerText || "").trim();
+            const optionButtons = Array.from(quizOptionsEl.querySelectorAll('button'));
+
+            const items = [];
+
+            if (qText) {
+                items.push({ text: qText, delayAfter: 350 });
+            }
+
+            optionButtons.forEach((btn, i) => {
+                const t = (btn.innerText || "").trim();
+                if (t) items.push({ text: `Option ${i + 1}. ${t}`, delayAfter: 150 });
+            });
+
+            if (items.length > 0) speakQueue(items);
+        }
+
         function resetProgress() {
+            cancelSpeech(); // ✅ 強制停止語音
+
             const ok = window.confirm("Reset all progress?\nYou will return to Level 1.");
             if (!ok) return;
 
@@ -609,7 +710,7 @@ function shuffleBoard() {
             { q: "Which country has the longest, narrowest shape in the world?", options: ["Italy", "Chile", "Vietnam", "Norway"], correct: 1 },
             { q: "Mahatma Gandhi is a historical figure from which country?", options: ["Pakistan", "Bangladesh", "India", "Nepal"], correct: 2 },
             { q: "Where did LEGO originate?", options: ["USA", "Germany", "Denmark", "Sweden"], correct: 2 },
-       
+            { q: "Where did Bubble Tea originate?", options: ["Hong Kong", "Thailand", "Taiwan", "Japan"], correct: 2 },
             { q: "Which country did IKEA originate from?", options: ["Finland", "Norway", "Sweden", "Denmark"], correct: 2 },
             { q: "Where is La Paz, the highest administrative capital in the world?", options: ["Bolivia", "Peru", "Ecuador", "Colombia"], correct: 0 },
             { q: "Where are the Pantheon and the Trevi Fountain located?", options: ["Athens", "Rome", "Istanbul", "Cairo"], correct: 1 },
@@ -632,6 +733,18 @@ function shuffleBoard() {
 
         document.addEventListener('DOMContentLoaded', () => {
             availableQuestions = [...allGeoQuestions];
+
+            // Bind speech buttons
+            const instructionsSpeakBtn = document.querySelector('#instructions-speak-btn');
+            const quizSpeakBtn = document.querySelector('#quiz-speak-btn');
+
+            instructionsSpeakBtn?.addEventListener('click', () => {
+                speakInstructions();
+            });
+
+            quizSpeakBtn?.addEventListener('click', () => {
+                speakCurrentQuiz();
+            });
 
             // Show instructions first
             setTimeout(() => {
@@ -671,10 +784,13 @@ function shuffleBoard() {
         quizNextBtn.onclick = closeQuiz;
 
         function showInstructions() {
+            cancelSpeech(); // ✅ 進入說明先清場
             instructionsModal.classList.add('active');
         }
 
         function closeInstructions() {
+            cancelSpeech(); // ✅ 關閉/開始遊戲必須強制停止
+
             instructionsModal.classList.remove('active');
             if (squares.length === 0) {
                 const saved = loadGameState();
@@ -973,6 +1089,8 @@ function checkMatches() {
         }
 
         function handleQuizAnswer(isCorrect, btnElement, correctText) {
+            cancelSpeech(); // ✅ 玩家作答立刻切斷語音
+
             const buttons = quizOptionsEl.querySelectorAll('button');
             buttons.forEach(b => b.disabled = true);
 
@@ -1006,6 +1124,8 @@ function checkMatches() {
         }
         
         function closeQuiz() {
+            cancelSpeech(); // ✅ 關閉問答立刻切斷
+
             quizModal.classList.remove('active');
             quizNextBtn.classList.add('hidden');
             isQuizActive = false;
@@ -1027,6 +1147,8 @@ function checkMatches() {
         }
 
         function showModal(win) {
+            cancelSpeech(); // ✅ 轉場保險清場
+
             modal.classList.add('active');
             if (win) {
                 modalTitle.innerText = "Level Complete!";
